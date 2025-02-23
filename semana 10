@@ -1,0 +1,109 @@
+git init
+git add .
+git commit -m "Proyecto de vacunación COVID en C#"
+git branch -M main
+git remote add origin https://github.com/tu-usuario/proyecto-vacunacion.git
+git push -u origin main
+using System;
+using System.Collections.Generic;
+using System.IO;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+
+class Program
+{
+    static void Main()
+    {
+        // Crear conjunto de 500 ciudadanos
+        HashSet<string> ciudadanos = new HashSet<string>();
+        for (int i = 1; i <= 500; i++)
+        {
+            ciudadanos.Add($"Ciudadano {i}");
+        }
+
+        // Crear subconjunto de 75 ciudadanos vacunados con Pfizer
+        HashSet<string> vacunadosPfizer = new HashSet<string>();
+        Random rnd = new Random();
+        while (vacunadosPfizer.Count < 75)
+        {
+            vacunadosPfizer.Add($"Ciudadano {rnd.Next(1, 501)}");
+        }
+
+        // Crear subconjunto de 75 ciudadanos vacunados con AstraZeneca
+        HashSet<string> vacunadosAstraZeneca = new HashSet<string>();
+        while (vacunadosAstraZeneca.Count < 75)
+        {
+            vacunadosAstraZeneca.Add($"Ciudadano {rnd.Next(1, 501)}");
+        }
+
+        // Operaciones de conjuntos
+        HashSet<string> noVacunados = new HashSet<string>(ciudadanos);
+        noVacunados.ExceptWith(vacunadosPfizer);
+        noVacunados.ExceptWith(vacunadosAstraZeneca);
+
+        HashSet<string> vacunadosAmbas = new HashSet<string>(vacunadosPfizer);
+        vacunadosAmbas.IntersectWith(vacunadosAstraZeneca);
+
+        HashSet<string> soloPfizer = new HashSet<string>(vacunadosPfizer);
+        soloPfizer.ExceptWith(vacunadosAmbas);
+
+        HashSet<string> soloAstraZeneca = new HashSet<string>(vacunadosAstraZeneca);
+        soloAstraZeneca.ExceptWith(vacunadosAmbas);
+
+        // Mostrar resultados en consola
+        MostrarResultados("Ciudadanos no vacunados", noVacunados);
+        MostrarResultados("Ciudadanos vacunados con ambas dosis", vacunadosAmbas);
+        MostrarResultados("Ciudadanos vacunados solo con Pfizer", soloPfizer);
+        MostrarResultados("Ciudadanos vacunados solo con AstraZeneca", soloAstraZeneca);
+
+        // Exportar a PDF (Opcional)
+        ExportarReportePDF(noVacunados, vacunadosAmbas, soloPfizer, soloAstraZeneca);
+    }
+
+    static void MostrarResultados(string titulo, HashSet<string> conjunto)
+    {
+        Console.WriteLine($"\n{titulo}: {conjunto.Count}");
+        foreach (var item in conjunto)
+        {
+            Console.WriteLine(item);
+        }
+    }
+
+    static void ExportarReportePDF(HashSet<string> noVacunados, HashSet<string> vacunadosAmbas, HashSet<string> soloPfizer, HashSet<string> soloAstraZeneca)
+    {
+        Document doc = new Document();
+        try
+        {
+            PdfWriter.GetInstance(doc, new FileStream("ReporteVacunacion.pdf", FileMode.Create));
+            doc.Open();
+
+            doc.Add(new Paragraph("Reporte de Vacunación COVID-19"));
+            doc.Add(new Paragraph("------------------------------------------------\n"));
+
+            AgregarSeccionPDF(doc, "Ciudadanos no vacunados", noVacunados);
+            AgregarSeccionPDF(doc, "Ciudadanos vacunados con ambas dosis", vacunadosAmbas);
+            AgregarSeccionPDF(doc, "Ciudadanos vacunados solo con Pfizer", soloPfizer);
+            AgregarSeccionPDF(doc, "Ciudadanos vacunados solo con AstraZeneca", soloAstraZeneca);
+
+            Console.WriteLine("\nEl reporte PDF ha sido generado exitosamente.");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error al generar el PDF: {e.Message}");
+        }
+        finally
+        {
+            doc.Close();
+        }
+    }
+
+    static void AgregarSeccionPDF(Document doc, string titulo, HashSet<string> conjunto)
+    {
+        doc.Add(new Paragraph($"{titulo}: {conjunto.Count}"));
+        foreach (var item in conjunto)
+        {
+            doc.Add(new Paragraph(item));
+        }
+        doc.Add(new Paragraph("\n"));
+    }
+}
