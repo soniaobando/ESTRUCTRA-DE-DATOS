@@ -1,0 +1,204 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace TorneoFutbolConciso
+{
+    class Jugador
+    {
+        public string Id { get; set; }
+        public string Nombre { get; set; }
+        public int Edad { get; set; }
+        public string Posicion { get; set; }
+
+        public override string ToString() => $"{Id} - {Nombre} ({Posicion})";
+    }
+
+    class Equipo
+    {
+        public string Nombre { get; set; }
+        public string Ciudad { get; set; }
+        public HashSet<Jugador> Jugadores { get; private set; }
+
+        public Equipo(string nombre, string ciudad)
+        {
+            Nombre = nombre;
+            Ciudad = ciudad;
+            Jugadores = new HashSet<Jugador>(new JugadorComparer());
+        }
+
+        public bool AgregarJugador(Jugador jugador) => Jugadores.Add(jugador);
+        public bool EliminarJugador(string id) => Jugadores.RemoveWhere(j => j.Id == id) > 0;
+    }
+
+    class JugadorComparer : IEqualityComparer<Jugador>
+    {
+        public bool Equals(Jugador x, Jugador y) => x.Id == y.Id;   
+        public int GetHashCode(Jugador obj) => obj.Id.GetHashCode();
+    }
+
+    class Torneo
+    {
+        public string Nombre { get; set; }
+        public Dictionary<string, Equipo> Equipos { get; private set; }
+
+        public Torneo(string nombre)
+        {
+            Nombre = nombre;
+            Equipos = new Dictionary<string, Equipo>();
+        }
+
+        public bool AgregarEquipo(Equipo equipo)
+        {
+            if (Equipos.ContainsKey(equipo.Nombre)) return false;
+            Equipos.Add(equipo.Nombre, equipo);
+            return true;
+        }
+
+        // Unión de conjuntos - todos los jugadores del torneo
+        public HashSet<Jugador> ObtenerTodosLosJugadores()
+        {
+            HashSet<Jugador> todos = new HashSet<Jugador>(new JugadorComparer());
+            foreach (var equipo in Equipos.Values)
+                todos.UnionWith(equipo.Jugadores);
+            return todos;
+        }
+
+        // Filtrado por posición
+        public HashSet<Jugador> BuscarJugadoresPorPosicion(string posicion)
+        {
+            HashSet<Jugador> resultado = new HashSet<Jugador>(new JugadorComparer());
+            foreach (var equipo in Equipos.Values)
+            {
+                var jugadores = equipo.Jugadores.Where(j => j.Posicion.Equals(posicion, StringComparison.OrdinalIgnoreCase));
+                resultado.UnionWith(jugadores);
+            }
+            return resultado;
+        }
+
+        // Intersección de conjuntos - jugadores en común
+        public HashSet<Jugador> JugadoresEnComun(string equipo1, string equipo2)
+        {
+            if (!Equipos.ContainsKey(equipo1) || !Equipos.ContainsKey(equipo2))
+                return new HashSet<Jugador>(new JugadorComparer());
+
+            var conjunto1 = new HashSet<Jugador>(Equipos[equipo1].Jugadores, new JugadorComparer());
+            conjunto1.IntersectWith(Equipos[equipo2].Jugadores);
+            return conjunto1;
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("=== SISTEMA DE REGISTRO DE TORNEOS DE FÚTBOL ===");
+            var torneo = new Torneo("Copa Universitaria 2025");
+            
+            // Datos de muestra
+            var equipo1 = new Equipo("Los Leones", "Madrid");
+            var equipo2 = new Equipo("Águilas", "Barcelona");
+            
+            torneo.AgregarEquipo(equipo1);
+            torneo.AgregarEquipo(equipo2);
+            
+            equipo1.AgregarJugador(new Jugador { Id = "J001", Nombre = "Juan Pérez", Edad = 22, Posicion = "Delantero" });
+            equipo1.AgregarJugador(new Jugador { Id = "J002", Nombre = "Carlos López", Edad = 24, Posicion = "Defensa" });
+            equipo1.AgregarJugador(new Jugador { Id = "J003", Nombre = "Pedro Gómez", Edad = 23, Posicion = "Portero" });
+            
+            equipo2.AgregarJugador(new Jugador { Id = "J004", Nombre = "Andrés Ruiz", Edad = 25, Posicion = "Mediocampista" });
+            equipo2.AgregarJugador(new Jugador { Id = "J005", Nombre = "Luis Torres", Edad = 21, Posicion = "Delantero" });
+            equipo2.AgregarJugador(new Jugador { Id = "J006", Nombre = "Pedro Gómez", Edad = 23, Posicion = "Portero" });
+
+            int opcion;
+            do
+            {
+                Console.WriteLine("\nMenú de Opciones:");
+                Console.WriteLine("1. Listar equipos");
+                Console.WriteLine("2. Listar jugadores de un equipo");
+                Console.WriteLine("3. Listar todos los jugadores del torneo");
+                Console.WriteLine("4. Buscar jugadores por posición");
+                Console.WriteLine("5. Buscar jugadores comunes entre dos equipos");
+                Console.WriteLine("0. Salir");
+                
+                Console.Write("Seleccione una opción: ");
+                int.TryParse(Console.ReadLine(), out opcion);
+
+                switch (opcion)
+                {
+                    case 1:
+                        ListarEquipos(torneo);
+                        break;
+                    case 2:
+                        ListarJugadoresEquipo(torneo);
+                        break;
+                    case 3:
+                        ListarTodosJugadores(torneo);
+                        break;
+                    case 4:
+                        BuscarPorPosicion(torneo);
+                        break;
+                    case 5:
+                        BuscarJugadoresComunes(torneo);
+                        break;
+                }
+            } while (opcion != 0);
+        }
+
+        static void ListarEquipos(Torneo torneo)
+        {
+            Console.WriteLine("\nEquipos registrados:");
+            foreach (var equipo in torneo.Equipos.Values)
+                Console.WriteLine($"{equipo.Nombre} - {equipo.Ciudad} ({equipo.Jugadores.Count} jugadores)");
+        }
+
+        static void ListarJugadoresEquipo(Torneo torneo)
+        {
+            Console.Write("Nombre del equipo: ");
+            string nombre = Console.ReadLine();
+            
+            if (!torneo.Equipos.ContainsKey(nombre))
+            {
+                Console.WriteLine("El equipo no existe.");
+                return;
+            }
+
+            Console.WriteLine($"\nJugadores de {nombre}:");
+            foreach (var jugador in torneo.Equipos[nombre].Jugadores)
+                Console.WriteLine(jugador);
+        }
+
+        static void ListarTodosJugadores(Torneo torneo)
+        {
+            var jugadores = torneo.ObtenerTodosLosJugadores();
+            Console.WriteLine("\nTodos los jugadores del torneo:");
+            foreach (var jugador in jugadores)
+                Console.WriteLine(jugador);
+        }
+
+        static void BuscarPorPosicion(Torneo torneo)
+        {
+            Console.Write("Posición a buscar: ");
+            string posicion = Console.ReadLine();
+            
+            var jugadores = torneo.BuscarJugadoresPorPosicion(posicion);
+            Console.WriteLine($"\nJugadores en posición {posicion}:");
+            foreach (var jugador in jugadores)
+                Console.WriteLine(jugador);
+        }
+
+        static void BuscarJugadoresComunes(Torneo torneo)
+        {
+            Console.Write("Primer equipo: ");
+            string equipo1 = Console.ReadLine();
+            
+            Console.Write("Segundo equipo: ");
+            string equipo2 = Console.ReadLine();
+            
+            var comunes = torneo.JugadoresEnComun(equipo1, equipo2);
+            Console.WriteLine($"\nJugadores comunes entre {equipo1} y {equipo2}:");
+            foreach (var jugador in comunes)
+                Console.WriteLine(jugador);
+        }
+    }
+}
