@@ -1,0 +1,79 @@
+using System;
+using System.Collections.Generic;
+
+namespace CatalogoRevistasSimple
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Catálogo de 10 revistas
+            List<string> catalogo = new List<string>
+            {
+                "National Geographic", "Time", "Vogue", "Forbes", "Wired",
+                "People", "Cosmopolitan", "Vanity Fair", "GQ", "Sports Illustrated"
+            };
+            catalogo.Sort(); // Ordenar para búsqueda binaria
+
+            bool salir = false;
+            while (!salir)
+            {
+                Console.Clear();
+                Console.WriteLine("=== CATÁLOGO DE REVISTAS ===");
+                Console.WriteLine("1. Buscar título");
+                Console.WriteLine("2. Salir");
+                Console.Write("Opción: ");
+                
+                switch (Console.ReadLine())
+                {
+                    case "1":
+                        Console.Write("Ingrese título a buscar: ");
+                        string titulo = Console.ReadLine();
+                        
+                        // Elegir una búsqueda (recursiva en este caso)
+                        bool encontrado = BusquedaRecursiva(catalogo, titulo, 0, catalogo.Count - 1);
+                        
+                        Console.WriteLine(encontrado ? "ENCONTRADO" : "NO ENCONTRADO");
+                        Console.WriteLine("Presione cualquier tecla para continuar...");
+                        Console.ReadKey();
+                        break;
+                    case "2":
+                        salir = true;
+                        break;
+                }
+            }
+        }
+
+        // Búsqueda binaria recursiva
+        static bool BusquedaRecursiva(List<string> lista, string titulo, int inicio, int fin)
+        {
+            if (inicio > fin) return false;
+            
+            int medio = (inicio + fin) / 2;
+            int comparacion = string.Compare(titulo, lista[medio], StringComparison.OrdinalIgnoreCase);
+            
+            if (comparacion == 0) return true;
+            if (comparacion < 0) return BusquedaRecursiva(lista, titulo, inicio, medio - 1);
+            return BusquedaRecursiva(lista, titulo, medio + 1, fin);
+        }
+
+        // Búsqueda binaria iterativa (alternativa)
+        static bool BusquedaIterativa(List<string> lista, string titulo)
+        {
+            int inicio = 0;
+            int fin = lista.Count - 1;
+            
+            while (inicio <= fin)
+            {
+                int medio = (inicio + fin) / 2;
+                int comparacion = string.Compare(titulo, lista[medio], StringComparison.OrdinalIgnoreCase);
+                
+                if (comparacion == 0) return true;
+                if (comparacion < 0) fin = medio - 1;
+                else inicio = medio + 1;
+            }
+            
+            return false;
+        }
+    }
+}
