@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class FlightGraph
+{
+    private Dictionary<string, List<(string destination, int cost)>> adjacencyList = new Dictionary<string, List<(string destination, int cost)>>();
+
+    public void AddFlight(string origin, string destination, int cost)
+    {
+        if (!adjacencyList.ContainsKey(origin))
+        {
+            adjacencyList[origin] = new List<(string destination, int cost)>();
+        }
+        adjacencyList[origin].Add((destination, cost));
+    }
+
+    public (List<string> path, int totalCost) FindCheapestFlight(string start, string end)
+    {
+        var costs = new Dictionary<string, int>();
+        var previousNodes = new Dictionary<string, string>();
+        var priorityQueue = new SortedSet<(int cost, string city)>();
+
+        foreach (var city in adjacencyList.Keys)
+        {
+            costs[city] = int.MaxValue;
+            previousNodes[city] = null;
+        }
+
+        costs[start] = 0;
+        priorityQueue.Add((0, start));
+
+        while (priorityQueue.Any())
+        {
+            var (currentCost, currentCity) = priorityQueue.First();
+            priorityQueue.Remove(priorityQueue.First());
+
+            if (currentCity == end)
+            {
+                var path = new List<string>();
+                while (currentCity != null)
+                {
+                    path.Insert(0, currentCity);
+                    currentCity = previousNodes[currentCity];
+                }
+                return (path, currentCost);
+            }
+
+            foreach (var (neighbor, flightCost) in adjacencyList[currentCity])
+            {
+                int newCost = currentCost + flightCost;
+                if (newCost < costs[neighbor])
+                {
+                    priorityQueue.Remove((costs[neighbor], neighbor));
+                    costs[neighbor] = newCost;
+                    previousNodes[neighbor] = currentCity;
+                    priorityQueue.Add((newCost, neighbor));
+                }
+            }
+        }
+
+        return (null, int.MaxValue); // No path found
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var graph = new FlightGraph();
+        graph.AddFlight("Quito", "Guayaquil", 100);
+        graph.AddFlight("Quito", "Cuenca", 120);
+        graph.AddFlight("Guayaquil", "Cuenca", 80);
+        graph.AddFlight("Guayaquil", "Manta", 90);
+        graph.AddFlight("Cuenca", "Manta", 60);
+
+        var (path, cost) = graph.FindCheapestFlight("Quito", "Manta");
+
+        if (path != null)
+        {
+            Console.WriteLine($"Ruta más económica: {string.Join(" -> ", path)} con un costo de ${cost}");
+        }
+        else
+        {
+            Console.WriteLine("No se encontró una ruta.");
+        }
+    }
+}
